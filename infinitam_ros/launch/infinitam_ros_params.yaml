@@ -1,0 +1,6 @@
+base_link: "base_link"
+tip_link: "camera_color_optical_frame"
+use_joint_states: false
+pointcloud_topic: "/camera/depth_registered/points"
+camera_info_topic: "/camera/color/camera_info"
+

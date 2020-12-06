@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" ns="" file="$(find infinitam_ros)/launch/infinitam_ros_params.yaml"/>
+<node
+    name="infinitam_ros_node" pkg="infinitam_ros" type="infinitam_ros_node" output="screen" cwd="node" respawn="true" respawn_delay="2">
+    </node>
+</launch>
