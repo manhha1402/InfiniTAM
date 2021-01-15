@@ -9,9 +9,8 @@
 #include "../ITMLib/Utils/ITMLibSettings.h"
 #include "../ORUtils/FileUtils.h"
 #include "../ORUtils/NVTimer.h"
-
+#include <eigen3/Eigen/Core>
 #include <vector>
-
 namespace InfiniTAM
 {
 	namespace Engine
@@ -38,7 +37,7 @@ namespace InfiniTAM
 			InputSource::ImageSourceEngine *imageSource;
 			InputSource::IMUSourceEngine *imuSource;
 			ITMLib::ITMLibSettings internalSettings;
-			ITMLib::ITMMainEngine *mainEngine;
+
 
 			StopWatchInterface *timer_instant;
 			StopWatchInterface *timer_average;
@@ -67,6 +66,8 @@ namespace InfiniTAM
 			InputSource::FFMPEGWriter *rgbVideoWriter;
 			InputSource::FFMPEGWriter *depthVideoWriter;
 		public:
+      ITMLib::ITMMainEngine *mainEngine;
+
 			static UIEngine* Instance(void) {
 				if (instance == NULL) instance = new UIEngine();
 				return instance;

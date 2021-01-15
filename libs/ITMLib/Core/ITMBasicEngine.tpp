@@ -99,13 +99,18 @@ template <typename TVoxel, typename TIndex>
 void ITMBasicEngine<TVoxel,TIndex>::SaveSceneToMesh(const char *objFileName,int max_triangles)
 {
   if (meshingEngine == NULL) return;
-  ITMMesh *mesh = new ITMMesh(settings->GetMemoryType(),max_triangles);
+  mesh_ = new ITMMesh(settings->GetMemoryType(),max_triangles);
 
-	meshingEngine->MeshScene(mesh, scene);
-	mesh->WriteSTL(objFileName);
+  meshingEngine->MeshScene(mesh_, scene);
+  mesh_->WriteOBJ(objFileName);
 
-	delete mesh;
+  delete mesh_;
 }
+//template <typename TVoxel, typename TIndex>
+//void ITMBasicEngine<TVoxel,TIndex>::getMesh(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces)
+//{
+//  // Not yet implemented for surfel scenes
+//}
 /*
 template <typename TVoxel, typename TIndex>
 void ITMBasicEngine<TVoxel,TIndex>::SaveSceneToMeshCustom(const char *objFileName, int max_triangles)

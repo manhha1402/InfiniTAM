@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.12 FATAL_ERROR)
-PROJECT(infinitam_ros)
+PROJECT(ros_infinitam)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 
@@ -53,6 +53,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
 link_directories(${Open3D_LIBRARY_DIRS})
+
 find_package(PCL REQUIRED)
 link_directories(${PCL_LIBRARY_DIRS})
 
@@ -80,6 +81,8 @@ include_directories(
     ${CUDA_INCLUDE_DIRS}
     ${Eigen3_INCLUDE_DIRS}
     ${PCL_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIR}
     )
 
 ADD_SUBDIRECTORY(libs/ITMLib)
@@ -96,6 +99,7 @@ add_executable(infinitam_ros_node
 target_link_libraries(infinitam_ros_node
     ${Boost_LIBRARIES}
     ${catkin_LIBRARIES}
+    ${CUDA_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Open3D_LIBRARIES}
     ${PCL_LIBRARIES}
@@ -114,6 +118,7 @@ add_executable(infinitam_app
 target_link_libraries(infinitam_app
     ${Boost_LIBRARIES}
     ${catkin_LIBRARIES}
+    ${CUDA_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Open3D_LIBRARIES}
     ${PCL_LIBRARIES}
@@ -133,9 +138,12 @@ target_link_libraries(infinitam_app
 #    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #    )
-#install(TARGETS infiniTAM_ros_node
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS infinitam_ros_node
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
+install(TARGETS infinitam_app
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
 #install(TARGETS ITMLib
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )

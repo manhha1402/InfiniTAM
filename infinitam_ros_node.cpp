@@ -1,7 +1,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <open3d/Open3D.h>
 #include <opencv2/opencv.hpp>
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -32,6 +31,10 @@
 #include <tf2_ros/transform_listener.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/PolygonMesh.h>
+#include <pcl/io/obj_io.h>
+#include <pcl/surface/simplification_remove_unused_vertices.h>
+#include <open3d/Open3D.h>
 #include <Eigen/Eigen>
 #include "libs/ITMLib/ITMLibDefines.h"
 #include "libs/ITMLib/Core/ITMBasicEngine.h"
@@ -41,6 +44,67 @@
 
 //using namespace InfiniTAM::Engine;
 //using namespace InputSource;
+
+void saveRGBDAndPose(std::string data_path, const Eigen::Matrix4d& cam2world, const cv::Mat& color_image, const cv::Mat& depth_image, const int frame_idx, std::string prefix = "")
+{
+  std::ofstream pose_f;
+
+  std::ostringstream curr_frame_prefix;
+  curr_frame_prefix << std::setw(6) << std::setfill('0') << frame_idx;
+
+  std::string depth_im_file = data_path + "/" + prefix + curr_frame_prefix.str() + ".depth.png";
+  std::string rgb_im_file = data_path + "/" + prefix + curr_frame_prefix.str() + ".color.png";
+  std::string cam2world_file = data_path + "/" + prefix + curr_frame_prefix.str() + ".pose.txt";
+  // save pose
+  pose_f.open(cam2world_file);
+  for (int i = 0; i < 4; i++)
+  {
+    for (int j = 0; j < 4; j++)
+    {
+      pose_f << cam2world(i, j) << " ";
+    }
+    pose_f << std::endl;
+  }
+  pose_f.close();
+
+  // save rgb-d image
+  cv::imwrite(rgb_im_file, color_image);
+  cv::imwrite(depth_im_file, depth_image);
+}
+
+void savePoseKITTIFormat(const std::string& file_name, const std::vector<Eigen::Matrix4d>& cam2worlds)
+{
+  /*
+   *
+      a b c d
+      e f g h
+      i j k l -> a b c d e f g h i j k l
+      0 0 0 1
+   *
+   */
+  std::ofstream pose_f;
+  pose_f.open(file_name);
+  for (std::size_t frame_id = 0; frame_id < cam2worlds.size(); ++frame_id) {
+    std::cout<<frame_id<<std::endl;
+    std::cout<<cam2worlds[frame_id]<<std::endl;
+    pose_f <<cam2worlds[frame_id](0,0)<<" "<<
+             cam2worlds[frame_id](0,1)<<" "<<
+             cam2worlds[frame_id](0,2)<<" "<<
+             cam2worlds[frame_id](0,3)<<" "<<
+             cam2worlds[frame_id](1,0)<<" "<<
+             cam2worlds[frame_id](1,1)<<" "<<
+             cam2worlds[frame_id](1,2)<<" "<<
+             cam2worlds[frame_id](1,3)<<" "<<
+             cam2worlds[frame_id](2,0)<<" "<<
+             cam2worlds[frame_id](2,1)<<" "<<
+             cam2worlds[frame_id](2,2)<<" "<<
+             cam2worlds[frame_id](2,3)<<std::endl;
+  }
+  pose_f.close();
+
+}
+
+
 using namespace ITMLib;
 class InfiniTAMROS
 {
@@ -99,6 +163,17 @@ private:
 
   bool stop_scanning_;
   bool start_scanning_;
+  std::vector<cv::Mat> texture_images_;
+  std::vector<cv::Mat> depth_images_;
+  std::vector<Eigen::Matrix4d> texture_cam2worlds_;
+  int diff_;
+  int prev_diff_;
+  int save_frame_idx_;
+  const int collection_time_ = 2;
+  std::chrono::system_clock::time_point beginning_time_;
+
+  std::vector<Eigen::Matrix4d> robot_poses_;
+  std::vector<Eigen::Matrix4d> camera_poses_;
 };
 InfiniTAMROS::InfiniTAMROS(ros::NodeHandle& node_handle) : node_(node_handle), image_transport_(node_handle)
 {
@@ -156,7 +231,16 @@ void InfiniTAMROS::coloredPointCloudCallback(const sensor_msgs::PointCloud2Const
   }
   if (stop_scanning_)
   {
-    main_engine_->SaveSceneToMesh("/home/manhha/infinitam_ws/infinitam_mesh.stl",10000000);
+    std::string data_path = "/home/manhha/catkin_ws/data_inifitam/";
+
+    main_engine_->SaveSceneToMesh("/home/manhha/catkin_ws/data_inifitam/mesh.obj",10000000);
+    for (std::size_t frame_ix = 0; frame_ix < save_frame_idx_; frame_ix++)
+    {
+      saveRGBDAndPose(data_path, texture_cam2worlds_[frame_ix], texture_images_[frame_ix], depth_images_[frame_ix], frame_ix);
+    }
+    savePoseKITTIFormat(data_path+"robot_poses.txt",robot_poses_);
+    savePoseKITTIFormat(data_path+"cam_poses.txt",camera_poses_);
+
     reset();
   }
 
@@ -173,12 +257,21 @@ void InfiniTAMROS::coloredPointCloudCallback(const sensor_msgs::PointCloud2Const
 
     Eigen::Affine3d pose;
     pose = toEigenMatrix(*main_engine_->GetTrackingState()->pose_d);
+
     geometry_msgs::TransformStamped pose_tf;
     pose_tf = tf2::eigenToTransform(pose.inverse());
     pose_tf.header.stamp = ros::Time(0);
     pose_tf.header.frame_id = colored_pointcloud_msg->header.frame_id;
     pose_tf.child_frame_id = "first_frame";
     tf2_static_br_->sendTransform(pose_tf);
+    beginning_time_ = std::chrono::system_clock::now();
+
+    geometry_msgs::TransformStamped cam0_to_base_tf;
+    cam0_to_base_tf = tf2_buffer_->lookupTransform("base_link", colored_pointcloud_msg->header.frame_id,ros::Time(0));
+    Eigen::Affine3d cam0_to_base = tf2::transformToEigen(cam0_to_base_tf);
+    robot_poses_.push_back(cam0_to_base.matrix());
+    camera_poses_.push_back(cam0_to_base.matrix());
+    cam_pose_ = cam0_to_base;
     return;
   }
   // convert point cloud message
@@ -186,6 +279,8 @@ void InfiniTAMROS::coloredPointCloudCallback(const sensor_msgs::PointCloud2Const
   pcl::fromROSMsg(*colored_pointcloud_msg, *input_cloud);
   ITMUChar4Image *color_image = new ITMUChar4Image(calib_.intrinsics_rgb.imgSize,MEMORYDEVICE_CPU);
   ITMShortImage *depth_image = new ITMShortImage(calib_.intrinsics_d.imgSize,MEMORYDEVICE_CPU);
+  cv::Mat cv_rgb(calib_.intrinsics_rgb.imgSize.y,calib_.intrinsics_rgb.imgSize.x,CV_8UC3);
+  cv::Mat cv_depth(calib_.intrinsics_d.imgSize.y,calib_.intrinsics_d.imgSize.x,CV_16UC1);
   int index = 0;
 
   Vector4u *rgb = color_image->GetData(MEMORYDEVICE_CPU);
@@ -200,40 +295,66 @@ void InfiniTAMROS::coloredPointCloudCallback(const sensor_msgs::PointCloud2Const
       rgb_val.y = point.g;
       rgb_val.z = point.r;
       rgb_val.w = 255;
+      cv_rgb.at<cv::Vec3b>(v,u) = cv::Vec3b(point.b, point.g, point.r);
+      cv_depth.at<ushort>(v, u) = static_cast<ushort>(point.z * 1000);
+
       rgb[index] = rgb_val;
       depth[index] = static_cast<unsigned short>(point.z * 1000);
     }
   }
   ITMTrackingState::TrackingResult trackerResult;
   trackerResult = main_engine_->ProcessFrame(color_image,depth_image);
+  if(trackerResult !=ITMTrackingState::TrackingResult::TRACKING_GOOD)
+  {
+    std::cout<<"tracking failed"<<std::endl;
+    std::cout<<frame_idx_<<std::endl;
+  }
+  std::cout<<trackerResult<<std::endl;
+
   ITMUChar4Image *ray_cast_image = new  ITMUChar4Image(calib_.intrinsics_d.imgSize,MEMORYDEVICE_CPU) ;
   ITMLib::ITMMainEngine::GetImageType type;
+  type = ITMLib::ITMMainEngine::InfiniTAM_IMAGE_COLOUR_FROM_NORMAL;
   ORUtils::SE3Pose freeviewPose;
   ITMLib::ITMIntrinsics freeviewIntrinsics;
+
   main_engine_->GetImage(ray_cast_image,type,&freeviewPose,&freeviewIntrinsics);
   ray_casting_view_.create(ray_cast_image->noDims.y,ray_cast_image->noDims.x,CV_8UC3);
   Vector4u *ray = ray_cast_image->GetData(MEMORYDEVICE_CPU);
 
+  Eigen::Affine3d cam2world, tam_cam2base;
 
-  Eigen::Affine3d pose;
-  pose = toEigenMatrix(*main_engine_->GetTrackingState()->pose_d);
+  cam2world = toEigenMatrix(*main_engine_->GetTrackingState()->pose_d);
+  //std::cout<<freeviewPose<<std::endl;
+  //std::cout<<*main_engine_->GetTrackingState()->pose_d<<std::endl;
+
+  //tam_cam2base = cam_pose_ * cam2world;
+  geometry_msgs::TransformStamped cam_to_base_tf;
+  cam_to_base_tf = tf2_buffer_->lookupTransform("base_link",colored_pointcloud_msg->header.frame_id,ros::Time(0));
+  Eigen::Affine3d cam_to_base = tf2::transformToEigen(cam_to_base_tf);
+  Eigen::Affine3d cam_to_cam0 = cam_pose_.inverse() * cam_to_base;
+  robot_poses_.push_back(cam_to_cam0.matrix());
+  camera_poses_.push_back(cam2world.matrix().inverse());
+
+
+
+  //cam2world = toEigenMatrix(freeviewPose);
   geometry_msgs::TransformStamped pose_tf;
-  pose_tf = tf2::eigenToTransform(pose.inverse());
+  pose_tf = tf2::eigenToTransform(cam2world.inverse());
   pose_tf.header.stamp = ros::Time(0);
   pose_tf.header.frame_id = "first_frame";
   pose_tf.child_frame_id = "cam_pose";
   tf2_br_->sendTransform(pose_tf);
+  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+  diff_ = std::chrono::duration_cast<std::chrono::seconds>(now - beginning_time_).count();  // in seconds
+  if (diff_ % collection_time_ == 0 && (diff_ != prev_diff_))
+  {
+    texture_images_.push_back(cv_rgb);
+    depth_images_.push_back(cv_depth);
+    texture_cam2worlds_.push_back(cam_to_cam0.matrix());
+    save_frame_idx_++;
+    prev_diff_ = diff_;
 
-
-  //  index = 0;
-  //  for (int x = 0; x < ray_cast_image->noDims.x; x++) {
-  //    for (int y = 0; y < ray_cast_image->noDims.y; y++, index++) {
-  //      Vector4u ray_val = rgb[index];
-  //      ray_casting_view_.at<cv::Vec3b>(y,x) = cv::Vec3b(ray_val.x,ray_val.y,ray_val.z);
-  //    }
-  //  }
-  //  publishRayCasting();
-
+  }
 }
 
 void InfiniTAMROS::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr &data)
@@ -297,17 +418,28 @@ void InfiniTAMROS::publishRayCasting()
 
 void InfiniTAMROS::reset()
 {
+  diff_ = 0;
+  prev_diff_ = 10000;
+  texture_cam2worlds_.clear();
+  save_frame_idx_ = 0;
+  texture_images_.clear();
+  depth_images_.clear();
   cam_pose_.setIdentity();
   intrinsic_.setIdentity();
   stop_scanning_ = false;
   start_scanning_ = false;
   frame_idx_=0;
   valid_ = false;
+  camera_poses_.clear();
+  robot_poses_.clear();
 }
 
 Eigen::Affine3d InfiniTAMROS::toEigenMatrix(const ORUtils::SE3Pose& pose)
 {
   Eigen::Affine3f eigen_pose;
+
+
+
   eigen_pose.matrix()(0,0) = pose.GetM()(0,0);
   eigen_pose.matrix()(0,1) = pose.GetM()(1,0);
   eigen_pose.matrix()(0,2) = pose.GetM()(2,0);
@@ -325,6 +457,7 @@ Eigen::Affine3d InfiniTAMROS::toEigenMatrix(const ORUtils::SE3Pose& pose)
   eigen_pose.matrix()(3,2) = pose.GetM()(2,3);
   eigen_pose.matrix()(3,3) = pose.GetM()(3,3);
   return  eigen_pose.cast<double>();
+
 
 }
 /*
@@ -407,8 +540,23 @@ bool InfiniTAMROS::stopScanning(std_srvs::Trigger::Request& req, std_srvs::Trigg
 }
 int main(int argc, char** argv)
 {
+
   ros::init(argc, argv, "inifinitam_ros_wrapper");
   ros::NodeHandle node;
   auto infinitam_ = std::make_shared<InfiniTAMROS>(node);
   ros::spin();
+
+
+  //  open3d::geometry::TriangleMesh mesh;
+  //  open3d::io::ReadTriangleMesh("/home/manhha/catkin_ws/data_inifitam/mesh.obj",mesh);
+  //  std::cout<<mesh.triangles_.size()<<std::endl;
+  //  std::cout<<mesh.vertices_.size()<<std::endl;
+  //  mesh.RemoveDuplicatedVertices();
+  //  mesh.RemoveDuplicatedTriangles();
+  //  mesh.RemoveDegenerateTriangles();
+  //  mesh.RemoveUnreferencedVertices();
+  //  std::cout<<mesh.triangles_.size()<<std::endl;
+  //  std::cout<<mesh.vertices_.size()<<std::endl;
+  //  open3d::io::WriteTriangleMesh("open3d_mesh.ply",mesh);
+
 }

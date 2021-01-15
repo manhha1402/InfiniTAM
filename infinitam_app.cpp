@@ -19,6 +19,7 @@
 #include "libs/ITMLib/Core/ITMBasicEngine.h"
 #include "libs/ITMLib/Core/ITMBasicSurfelEngine.h"
 #include "libs/ITMLib/Core/ITMMultiEngine.h"
+#include <open3d/Open3D.h>
 
 using namespace InfiniTAM::Engine;
 using namespace InputSource;
@@ -82,9 +83,9 @@ static void CreateDefaultImageSource(ImageSourceEngine* & imageSource, IMUSource
 
 	if (imageSource == NULL)
 	{
-		printf("trying ROS input: /camera/depth/image_raw, /camera/rgb/image_color \n");
+    printf("trying ROS input: /camera/aligned_depth_to_color/image_raw, /camera/color/image_raw \n");
 		imageSource = new ROSEngine(calibFile);
-		if (imageSource->getDepthImageSize().x == 0)
+    if (imageSource->getDepthImageSize().x == 0)
 		{
 			delete imageSource;
 			imageSource = NULL;
@@ -198,7 +199,7 @@ try
 	}
 
 	ITMLibSettings *internalSettings = new ITMLibSettings();
-
+  internalSettings->libMode = ITMLibSettings::LIBMODE_LOOPCLOSURE;
 	ITMMainEngine *mainEngine = NULL;
 	switch (internalSettings->libMode)
 	{
@@ -219,7 +220,6 @@ try
 	UIEngine::Instance()->Initialise(argc, argv, imageSource, imuSource, mainEngine, "./Files/Out", internalSettings->deviceType);
 	UIEngine::Instance()->Run();
 	UIEngine::Instance()->Shutdown();
-
 	delete mainEngine;
 	delete internalSettings;
 	delete imageSource;

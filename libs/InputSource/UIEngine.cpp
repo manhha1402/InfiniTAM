@@ -130,22 +130,6 @@ void UIEngine::glutIdleFunction()
 		uiEngine->ProcessFrame(); uiEngine->processedFrameNo++;
 		uiEngine->needsRefresh = true;
 		break;
-		//case SAVE_TO_DISK:
-		//	if (!uiEngine->actionDone)
-		//	{
-		//		char outFile[255];
-
-		//		ITMUChar4Image *saveImage = uiEngine->saveImage;
-
-		//		glReadBuffer(GL_BACK);
-		//		glReadPixels(0, 0, saveImage->noDims.x, saveImage->noDims.x, GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)saveImage->GetData(false));
-		//		sprintf(outFile, "%s/out_%05d.ppm", uiEngine->outFolder, uiEngine->processedFrameNo);
-
-		//		SaveImageToFile(saveImage, outFile, true);
-
-		//		uiEngine->actionDone = true;
-		//	}
-		//	break;
 	case EXIT:
 #ifdef FREEGLUT
 		glutLeaveMainLoop();
@@ -272,7 +256,8 @@ void UIEngine::glutKeyUpFunction(unsigned char key, int x, int y)
 	case 'w':
 	{
 		printf("saving scene to model ... ");
-		uiEngine->mainEngine->SaveSceneToMesh("mesh.stl");
+    uiEngine->mainEngine->SaveSceneToMesh("mesh.obj");
+
 		printf("done\n");
 	}
 	break;
@@ -513,20 +498,9 @@ void UIEngine::Initialise(int & argc, char** argv, ImageSourceEngine *imageSourc
 		strcpy(this->outFolder, outFolder);
 	}
 
-	//Vector2i winSize;
-	//int textHeight = 30; // Height of text area
-	//winSize.x = 2 * MAX(imageSource->getRGBImageSize().x, imageSource->getDepthImageSize().x);
-	//winSize.y = MAX(imageSource->getRGBImageSize().y, imageSource->getDepthImageSize().y) + textHeight;
-	//float h1 = textHeight / (float)winSize.y, h2 = (1.f + h1) / 2;
-	//winReg[0] = Vector4f(0, h1, 0.5, 1); // Main render
-	//winReg[1] = Vector4f(0.5, h2, 0.75, 1); // Side sub window 0
-	//winReg[2] = Vector4f(0.75, h2, 1, 1); // Side sub window 1
-	//winReg[3] = Vector4f(0.5, h1, 0.75, h2); // Side sub window 2
-	//winReg[4] = Vector4f(0.75, h1, 1, h2); // Side sub window 3
 
 	int textHeight = 30; // Height of text area
-	//winSize.x = (int)(1.5f * (float)MAX(imageSource->getImageSize().x, imageSource->getDepthImageSize().x));
-	//winSize.y = MAX(imageSource->getRGBImageSize().y, imageSource->getDepthImageSize().y) + textHeight;
+
 	winSize.x = (int)(1.5f * (float)(imageSource->getDepthImageSize().x));
 	winSize.y = imageSource->getDepthImageSize().y + textHeight;
 	float h1 = textHeight / (float)winSize.y, h2 = (1.f + h1) / 2;

@@ -297,19 +297,13 @@ ITMTrackingState::TrackingResult ITMMultiEngine<TVoxel, TIndex>::ProcessFrame(IT
 	return primaryLocalMapTrackingResult;
 }
 
-/*
-template <typename TVoxel, typename TIndex>
-void ITMMultiEngine<TVoxel, TIndex>::SaveSceneToMeshCustom(const char *modelFileName,int max_triangles )
-{
-  if (meshingEngine == NULL) return;
-  ITMMesh *mesh = new ITMMesh(settings->GetMemoryType(),max_triangles);
 
-  meshingEngine->MeshScene(mesh, *mapManager);
-  mesh->WriteSTL(modelFileName);
+//template <typename TVoxel, typename TIndex>
+//void ITMMultiEngine<TVoxel, TIndex>::getMesh(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces)
+//{
 
-  delete mesh;
-}
-*/
+//}
+
 
 template <typename TVoxel, typename TIndex>
 void ITMMultiEngine<TVoxel, TIndex>::SaveSceneToMesh(const char *modelFileName,int max_triangles)
@@ -318,10 +312,11 @@ void ITMMultiEngine<TVoxel, TIndex>::SaveSceneToMesh(const char *modelFileName,i
   ITMMesh *mesh = new ITMMesh(settings->GetMemoryType(),max_triangles);
 
 	meshingEngine->MeshScene(mesh, *mapManager);
-	mesh->WriteSTL(modelFileName);
+  mesh->WriteOBJ(modelFileName);
 	
 	delete mesh;
 }
+
 
 template <typename TVoxel, typename TIndex>
 void ITMMultiEngine<TVoxel, TIndex>::SaveToFile()

@@ -14,8 +14,8 @@ SET(targetname InputSource)
 
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/OfferInputMirroring.cmake)
 
-include_directories(${OPENGL_INCLUDE_DIR})
-include_directories(${GLUT_INCLUDE_DIR})
+#include_directories(${OPENGL_INCLUDE_DIR})
+#include_directories(${GLUT_INCLUDE_DIR})
 ################################
 # Specify the libraries to use #
 ################################

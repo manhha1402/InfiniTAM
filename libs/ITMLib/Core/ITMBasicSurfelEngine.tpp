@@ -92,13 +92,13 @@ void ITMBasicSurfelEngine<TSurfel>::SaveSceneToMesh(const char *objFileName,int 
 {
 	// Not yet implemented for surfel scenes
 }
-/*
-template <typename TSurfel>
-void ITMBasicSurfelEngine<TSurfel>::SaveSceneToMeshCustom(const char *objFileName, int max_triangles)
-{
-  // Not yet implemented for surfel scenes
-}
-*/
+
+//template <typename TSurfel>
+//void ITMBasicSurfelEngine<TSurfel>::getMesh(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces)
+//{
+//  // Not yet implemented for surfel scenes
+//}
+
 
 template <typename TSurfel>
 void ITMBasicSurfelEngine<TSurfel>::SaveToFile()

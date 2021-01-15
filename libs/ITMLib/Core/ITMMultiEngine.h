@@ -15,6 +15,7 @@
 #include "../Engines/Meshing/ITMMultiMeshingEngineFactory.h"
 
 #include <vector>
+#include <Eigen/Core>
 
 namespace ITMLib
 {
@@ -85,6 +86,9 @@ namespace ITMLib
 
 		/// Extracts a mesh from the current scene and saves it to the model file specified by the file name
     void SaveSceneToMesh(const char *fileName,int max_triangles = 10000000);
+
+    /// Extracts a mesh from the current scene and saves it to eigen format
+    //void getMesh(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces);
 
 		/// save and load the full scene and relocaliser (if any) to/from file
 		void SaveToFile();

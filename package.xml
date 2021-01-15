@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-<name>infinitam_ros</name>
+<name>ros_infinitam</name>
 <version>0.0.1</version>
-<description>The infinitam_ros package</description>
+<description>The ros_infinitam package</description>
 <author email="manhha.hoang@hansrobot.de">Manh Ha Hoang</author>
 <maintainer email="manhha.hoang@hansrobot.de">Manh Ha Hoang</maintainer>
   <author>Manh Ha Hoang</author>

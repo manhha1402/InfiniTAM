@@ -5,7 +5,8 @@
 #include "../Objects/Misc/ITMIMUMeasurement.h"
 #include "../Trackers/Interface/ITMTracker.h"
 #include "../Utils/ITMLibSettings.h"
-
+#include <Eigen/Core>
+#include <vector>
 /** \mainpage
     This is the API reference documentation for InfiniTAM. For a general
     overview additional documentation can be found in the included Technical
@@ -78,10 +79,8 @@ namespace ITMLib
 
 		/// Extracts a mesh from the current scene and saves it to the model file specified by the file name
     virtual void SaveSceneToMesh(const char *fileName,int max_triangles = 10000000) { };
-
-    /// Extracts a mesh from the current scene and saves it to the model file specified by the file name with
-    /// maximum triangles to avoid GPU out of memory
-    //virtual void SaveSceneToMeshCustom(const char *fileName, int max_triangles = 10000000);
+    /// Extracts a mesh from the current scene and saves it to eigen format
+    //virtual void getMesh(std::vector<Eigen::Vector3d>& vertices, std::vector<Eigen::Vector3i>& faces);
 
 
 		/// save and load the full scene and relocaliser (if any) to/from file
